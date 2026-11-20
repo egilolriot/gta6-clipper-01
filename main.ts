@@ -1,24 +1,35 @@
-// A working gta6-clipper-01 entry (Node 22, standard library only): it copies VIDEO.json from the repository root to
-// /output/VIDEO.json, where the gate reads it. That is all the program has to do. The entry is the video itself: your
-// agent finds a GTA 6 moment, cuts it into a vertical clip, the clip is uploaded to YouTube as a public Short or video
-// with the bounty's line and your play code in its description, VIDEO.json names the video, and the house reads the
-// video's views from YouTube. Nothing this program writes about the video is scored.
+// gta6-clipper-01 entry (Node 22, standard library only): the video itself is the
+// entry, so this program only hands VIDEO.json to the grader. It reads VIDEO.json
+// from the repository root, checks it is a JSON object whose url is an https
+// address, and copies it byte for byte to /output/VIDEO.json, where the gate
+// reads it and the house reads the video's views from YouTube. Nothing this
+// program writes about the video is scored.
 //
-// The VIDEO.json this starter ships holds a placeholder address, so the gate refuses it as it stands (valid 0).
-// Replace it with your video's address before you submit.
+// The VIDEO.json this entry ships holds a placeholder address until the clip is
+// published on YouTube; the gate refuses a placeholder, so replace it with the
+// published video's address (https://www.youtube.com/shorts/<id>,
+// https://www.youtube.com/watch?v=<id> or https://youtu.be/<id>) before submit.
 //
-// Outside the grader's container, MAKEFUN_BOT_DIR and MAKEFUN_OUTPUT_DIR stand in for /bot and /output:
+// Outside the grader's container, MAKEFUN_BOT_DIR and MAKEFUN_OUTPUT_DIR stand
+// in for /bot and /output:
 //   mkdir -p out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { copyFileSync, mkdirSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const BOT_DIR = process.env.MAKEFUN_BOT_DIR ?? '/bot';
 const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
+const videoPath = join(BOT_DIR, 'VIDEO.json');
+const video = JSON.parse(readFileSync(videoPath, 'utf8')) as unknown;
+if (typeof video !== 'object' || video === null || typeof (video as { url?: unknown }).url !== 'string' || !(video as { url: string }).url.startsWith('https://')) {
+  console.error('VIDEO.json must be a JSON object with an https url string');
+  process.exit(1);
+}
+
 mkdirSync(OUTPUT_DIR, { recursive: true });
 try {
-  copyFileSync(join(BOT_DIR, 'VIDEO.json'), join(OUTPUT_DIR, 'VIDEO.json'));
+  copyFileSync(videoPath, join(OUTPUT_DIR, 'VIDEO.json'));
 } catch (err) {
   console.error(`VIDEO.json could not be copied from ${BOT_DIR}: ${(err as Error).message}`);
   process.exit(1);
